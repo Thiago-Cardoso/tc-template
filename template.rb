@@ -1,78 +1,93 @@
 class Template
-  attr_accessor :sentence
-
-  def initialize(sentence = nil)
+  attr_accessor :error, :sections, :clauses
+  def initialize(sentence)
     @sentence = sentence
-  end
-
-  def clouses_data
-    clouses = [
+    @error = error
+    @clauses = [
       { "id": 1, "text": 'The quick brown fox' },
       { "id": 2, "text": 'jumps over the lazy dog' },
       { "id": 3, "text": 'And dies' },
       { "id": 4, "text": 'The white horse is white' }
     ]
-    clouses
-  end
-
-  def sections_data
-    sections = [
+    @sections = [
       { "id": 1, "clauses_ids": [1, 2] }
     ]
-    sections
   end
 
-  def match_sentence
-    if @sentence.match(/\s(\[CLAUSE-\d\])/)
-      regex_sentence = /\s(\[CLAUSE-\d\])/
-      index_tag = extract_tag_index(@sentence, regex_sentence)
-      text = clause_text_sentence(@sentence, regex_sentence, index_tag)
-      p print_clause_text(@sentence, text)
-    elsif @sentence.match(/\s(\[SECTION-\d\])/)
-      regex_sentence = /\s(\[SECTION-\d\])/
-      index_tag = extract_tag_index(@sentence, regex_sentence)
-      text = section_text_sentence(@sentence, regex_sentence, index_tag)
-      p "#{text}"
-    else
-      false
+  def add_clause(id:, text:)
+    @clauses.push({"id": id, "text": text})
+  end
+
+  def delete_clause(id:)
+    @clauses.delete_if {|clause| clause[:id] == id}
+  end
+
+  def add_section(id:, clauses_ids:)
+    @sections.push({"id": id, "clauses_ids": clauses_ids})
+  end
+
+  def delete_section(id:)
+    @sections.delete_if {|section| section[:id] == id}
+  end
+
+  def process_sentence
+    begin
+      if @sentence.match(/\s(\[CLAUSE-\d{1,}\])/)
+        regex_sentence = /\s(\[CLAUSE-\d{1,}\])/
+        tag_id = extract_tag_id(regex_sentence)
+        text = clause_sentence(regex_sentence, tag_id)
+        return print_clause(text)
+      elsif @sentence.match(/\s(\[SECTION-\d{1,}\])/)
+        regex_sentence = /\s(\[SECTION-\d{1,}\])/
+        tag_id = extract_tag_id(regex_sentence)
+        text = section_sentence(regex_sentence, tag_id)
+        return print_section(text)
+      else
+        false
+      end
+    rescue StandardError => e
+      @error = e.message
     end
   end
 
   private
 
-  def extract_tag_index(sentence, regex_sentence)
-      str_tag = sentence.split(regex_sentence)
-      tag = str_tag[1].match(/-\d/)
-      tag = tag[0].gsub("-", "")
-      tag
+  def extract_tag_id(regex_sentence)
+    tag = @sentence.split(regex_sentence)
+    tag_id = tag[1].match(/-\d{1,}/)[0].gsub("-", "")
+    tag_id
   end
 
-  def section_text_sentence(sentence, regex_sentence, index_tag)
-    text_value = sections_data.select  { |section| section[:id].to_s == index_tag.to_s ? section : nil}.reject(&:nil?)
-    clauses_ids = text_value[0][:clauses_ids]
+  def section_sentence(regex_sentence, index_tag)
+    section = @sections.select  { |section| section[:id].to_s == index_tag.to_s ? section : nil}.reject(&:nil?)
+    raise "section index not found!" if section.empty?
+    clauses_ids = section[0][:clauses_ids]
     text = clauses_ids.map do |clause_id |
-      clause_text_sentence(sentence, regex_sentence, clause_id)
+      clause_sentence(regex_sentence, clause_id)
     end
-    print_section_text(sentence, text)
   end
 
-  def clause_text_sentence(sentence, regex_sentence, index_tag)
-    text_value = clouses_data.select  { |clouse| clouse[:id].to_s == index_tag.to_s ? clouse : nil}.reject(&:nil?)
-    text = " " + text_value[0][:text]
-    text
+  def clause_sentence(regex_sentence, clause_id)
+    clause = @clauses.select  { |clouse| clouse[:id].to_s == clause_id.to_s ? clouse : nil}.reject(&:nil?)
+    raise "clause index not found!" if clause.empty?
+    " " + clause[0][:text]
   end
 
-  def print_section_text(sentence, text)
-    sentence.gsub(/\s(\[SECTION-\d\])/,text.join(';'))
+  def print_clause(text)
+    @sentence.gsub(/\s(\[CLAUSE-\d{1,}\])/,text)
   end
 
-  def print_clause_text(sentence, text)
-    sentence.gsub(/\s(\[CLAUSE-\d\])/,text)
+  def print_section(text)
+    @sentence.gsub(/\s(\[SECTION-\d{1,}\])/,text.join(';'))
   end
-
 end
 
-Template.new('Is made of [CLAUSE-3].').match_sentence
-Template.new('Is made of [CLAUSE-4].').match_sentence
-Template.new('Is made of [SECTION-1].').match_sentence
+p ":::: OUTPUT ::::"
+template = Template.new("Is made of [CLAUSE-3].")
+puts template.process_sentence
 
+template = Template.new("Is made of [CLAUSE-4].")
+puts template.process_sentence
+
+template = Template.new("Is made of [SECTION-1].")
+puts template.process_sentence
