@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  app:
+    build: .
+    command: bash entry.sh
+    ports:
+      - "3000:3000"
+    environment:
+      - RACK_ENV=dev
+    volumes:
+      - ".:/generator"
+  box:
+    image: busybox
+    volumes:
+      - /box
+
+volumes:
+  box:
