@@ -70,8 +70,9 @@ class Template
     sentence.gsub(/\s(\[CLAUSE-\d\])/,text)
   end
 
-  Template.new('Is made of [CLAUSE-3].').match_sentence
-  Template.new('Is made of [CLAUSE-4].').match_sentence
-  Template.new('Is made of [SECTION-1].').match_sentence
 end
+
+Template.new('Is made of [CLAUSE-3].').match_sentence
+Template.new('Is made of [CLAUSE-4].').match_sentence
+Template.new('Is made of [SECTION-1].').match_sentence
 
